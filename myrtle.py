@@ -2,6 +2,9 @@
 import irclib
 import ircbot
 
+def maj(string):
+    return string.title()
+
 class Bill(ircbot.SingleServerIRCBot):
     # constructor
     def __init__(self):
@@ -11,7 +14,7 @@ class Bill(ircbot.SingleServerIRCBot):
 
     def join_spam(self, serv):
         serv.join("#spam")
-        serv.privmsg("#spam", "Bonjour Corwin")
+        serv.privmsg("#spam", "Bonjour")
 
     def join_chans(self, serv):
         for chan in self.chans:
@@ -23,15 +26,26 @@ class Bill(ircbot.SingleServerIRCBot):
     def on_welcome(self, serv, ev):
         self.join_chans(serv)
 
+    def check_welcome(self, serv, ev, salutation, msg):
+        if salutation + " " + serv.get_nickname() in msg:
+            author = irclib.nm_to_n(ev.source())
+            serv.privmsg(ev.target(), maj(salutation) + " " + author)
+
+    def check_welcomes(self, serv, ev, msg)
+        self.check_welcome(serv, ev, "bonjour", msg)
+        self.check_welcome(serv, ev, "bonsoir", msg)
+        self.check_welcome(serv, ev, "salut", msg)
+        self.check_welcome(serv, ev, "coucou", msg)
+        self.check_welcome(serv, ev, "salutations", msg)
+
     def on_pubmsg(self, serv, ev):
         # action on public message
         msg = ev.arguments()[0].lower()
-        if "bonjour " + self.get_nickname() in msg:
-            author = irclib.nm_to_n(ev.source())
-            serv.privmsg("#spam", "Bonjour " + author)
+        self.check_welcomes(serv, ev, msg)
+
     def on_kick(self, serv, ev):
         # action on kick
-        join_chans()
+        self.join_chans()
 
 if __name__ == "__main__":
     Bill().start()
