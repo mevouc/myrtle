@@ -37,16 +37,21 @@ class MoreOrLess():
 class Myrtle(ircbot.SingleServerIRCBot):
     # constructor
     def __init__(self):
-        ircbot.SingleServerIRCBot.__init__(self, [("irc.rezosup.org", 6667)],
-                                            "myrtle", "Bilbo's pony")
+        ircbot.SingleServerIRCBot.__init__(self, [("irc.epita.rezosup.org",
+                                            6667)], "myrtle", "Bilbo's pony")
         self.chans = [ "#spam" ]
         self.adjectives = [ "long", "longue", "dur", "dure", "large", "gros",
                 "grosse", "grand", "grande", "infini", "infinie", "imposante",
                 "immense", "énorme", "imposant", "démesuré", "démesurée",
                 "extraordinaire", "magnifique", "beau", "belle", "soyeux",
                 "soyeuse", "doux", "douce" ]
+        self.di_exps = [ "dis ", "dit ", "di", "d'i", "dy", "d'y", "d'hi",
+                "d'hy"]
+        self.cri_exps = [ "crie ", "cries ", "cri", "cry", "kri", "kry", "qri",
+                "qry"]
         self.more_or_less = MoreOrLess()
         self.playing_mol = False
+        self.repeating = ""
 
     def join_chans(self, serv):
         for chan in self.chans:
@@ -87,13 +92,15 @@ class Myrtle(ircbot.SingleServerIRCBot):
             if "est " + adj in msg:
                 serv.privmsg(ev.target(), "Comme ma queue")
 
+    def command(self, serv, cmd):
+        return "!" + serv.get_nickname() + " " + cmd
+
     def check_more_or_less(self, serv, ev, msg):
-        if not self.playing_mol:
-            if msg == "!" + serv.get_nickname() + " dichotomie":
-                self.playing_mol = True
-                self.more_or_less = MoreOrLess()
-                serv.privmsg(ev.target(), "0")
-        else:
+        if msg == self.command(serv, "dichotomie"):
+            self.playing_mol = True
+            self.more_or_less = MoreOrLess()
+            serv.privmsg(ev.target(), "0")
+        if self.playing_mol:
             if msg == serv.get_nickname() + ": more":
                 val = self.more_or_less.more()
                 serv.privmsg(ev.target(), val)
@@ -103,13 +110,73 @@ class Myrtle(ircbot.SingleServerIRCBot):
             elif msg == serv.get_nickname() + ": congratulations!":
                 author = irclib.nm_to_n(ev.source())
                 serv.privmsg(ev.target(), "Merci " + author)
+                self.playing_mol = False
+
+    def check_stop(self, serv, ev, msg):
+        if msg == self.command(serv, "stop"):
+            if self.playing_mol:
+                serv.privmsg(ev.target(), "Stopping more or less")
+                self.playing_mol = False
+            if self.repeating != "":
+                serv.privmsg(ev.target(), "Stopping repeating "
+                        + self.repeating)
+                self.repeating = ""
+
+    def check_repeat(self, serv, msg):
+        tokens = msg.split(" ")
+        if len(tokens) > 2:
+            if tokens[0] + " " + tokens[1] == self.command(serv, "repeat"):
+                self.repeating = irclib.nm_to_n(tokens[2])
+
+    def repeat(self, serv, ev, msg):
+        serv.privmsg(ev.target(), msg)
+
+    def check_di(self, serv, ev, msg):
+        index = -1
+        length = 0
+        for di_exp in self.di_exps:
+            if index != -1:
+                break
+            index = msg.rfind(di_exp)
+            length = len(di_exp)
+        if index == -1:
+            return
+        end_of_msg = msg[index + length:]
+        word = end_of_msg.split(" ")[0]
+        if word == "":
+            return
+        serv.privmsg(ev.target(), maj(word))
+
+    def check_cri(self, serv, ev, msg):
+        index = -1
+        length = 0
+        for cri_exp in self.cri_exps:
+            if index != -1:
+                break
+            index = msg.rfind(cri_exp)
+            length = len(cri_exp)
+        if index == -1:
+            return
+        end_of_msg = msg[index + length:]
+        word = end_of_msg.split(" ")[0]
+        if word == "":
+            return
+        serv.privmsg(ev.target(), word.upper())
 
     def on_pubmsg(self, serv, ev):
         # action on public message
-        msg = ev.arguments()[0].lower()
-        self.check_welcomes(serv, ev, msg)
-        self.check_adjectives(serv, ev, msg)
-        self.check_more_or_less(serv, ev, msg)
+        msg = ev.arguments()[0]
+        author = irclib.nm_to_n(ev.source())
+        if author != serv.get_nickname():
+            self.check_welcomes(serv, ev, msg.lower())
+            self.check_adjectives(serv, ev, msg.lower())
+            self.check_more_or_less(serv, ev, msg.lower())
+            self.check_stop(serv, ev, msg.lower())
+            if author == self.repeating:
+                self.repeat(serv, ev, msg)
+            self.check_repeat(serv, msg.lower())
+            self.check_di(serv, ev, msg.lower())
+            self.check_cri(serv, ev, msg.lower())
 
     def on_kick(self, serv, ev):
         # action on kick
