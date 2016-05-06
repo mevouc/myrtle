@@ -45,8 +45,8 @@ class Myrtle(ircbot.SingleServerIRCBot):
                 "immense", "énorme", "imposant", "démesuré", "démesurée",
                 "extraordinaire", "magnifique", "beau", "belle", "soyeux",
                 "soyeuse", "doux", "douce" ]
-        self.di_exps = [ "dis ", "dit ", "di", "d'i", "dy", "d'y", "d'hi",
-                "d'hy"]
+        self.di_exps = [ "dis ", "dit ", "di", "d'i", "dhi", "dy", "dhy", "d'y",
+                "d'hi", "d'hy"]
         self.cri_exps = [ "crie ", "cries ", "cri", "cry", "kri", "kry", "qri",
                 "qry"]
         self.more_or_less = MoreOrLess()
