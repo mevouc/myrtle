@@ -36,7 +36,8 @@ class Myrtle(ircbot.SingleServerIRCBot):
 
     def on_join(self, serv, ev):
         joiner = irclib.nm_to_n(ev.source())
-        serv.privmsg(ev.target(), "Bonjour " + joiner)
+        if (joiner != serv.get_nickname()):
+            serv.privmsg(ev.target(), "Bonjour " + joiner)
 
     def on_part(self, serv, ev):
         parter = irclib.nm_to_n(ev.source())
