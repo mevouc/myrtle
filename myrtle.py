@@ -2,6 +2,7 @@
 # -*- coding: utf8 -*-
 import irclib
 import ircbot
+import sys
 
 def maj(string):
     if len(string) == 0:
@@ -10,6 +11,28 @@ def maj(string):
         return string.upper()
     else:
         return string[0].upper() + string[1:]
+
+class MoreOrLess():
+    def __init__(self):
+        self.minimum = -sys.maxint - 1
+        self.maximum = sys.maxint
+        self.val = 0
+
+    def get_min(self):
+        return self.minimum
+
+    def get_max(self):
+        return self.maximum
+
+    def more(self):
+        self.minimum = self.val
+        self.val = (self.minimum + self.maximum) / 2
+        return self.val
+
+    def less(self):
+        self.maximum = self.val
+        self.val = (self.minimum + self.maximum) / 2
+        return self.val
 
 class Myrtle(ircbot.SingleServerIRCBot):
     # constructor
@@ -22,6 +45,8 @@ class Myrtle(ircbot.SingleServerIRCBot):
                 "immense", "énorme", "imposant", "démesuré", "démesurée",
                 "extraordinaire", "magnifique", "beau", "belle", "soyeux",
                 "soyeuse", "doux", "douce" ]
+        self.more_or_less = MoreOrLess()
+        self.playing_mol = False
 
     def join_chans(self, serv):
         for chan in self.chans:
@@ -62,11 +87,29 @@ class Myrtle(ircbot.SingleServerIRCBot):
             if "est " + adj in msg:
                 serv.privmsg(ev.target(), "Comme ma queue")
 
+    def check_more_or_less(self, serv, ev, msg):
+        if not self.playing_mol:
+            if msg == "!" + serv.get_nickname() + " dichotomie":
+                self.playing_mol = True
+                self.more_or_less = MoreOrLess()
+                serv.privmsg(ev.target(), "0")
+        else:
+            if msg == serv.get_nickname() + ": more":
+                val = self.more_or_less.more()
+                serv.privmsg(ev.target(), val)
+            elif msg == serv.get_nickname() + ": less":
+                val = self.more_or_less.less()
+                serv.privmsg(ev.target(), val)
+            elif msg == serv.get_nickname() + ": congratulations!":
+                author = irclib.nm_to_n(ev.source())
+                serv.privmsg(ev.target(), "Merci " + author)
+
     def on_pubmsg(self, serv, ev):
         # action on public message
         msg = ev.arguments()[0].lower()
         self.check_welcomes(serv, ev, msg)
         self.check_adjectives(serv, ev, msg)
+        self.check_more_or_less(serv, ev, msg)
 
     def on_kick(self, serv, ev):
         # action on kick
